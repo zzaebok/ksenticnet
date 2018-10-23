@@ -1,2 +1,2 @@
 # ksenticnet
-Korean sentiment analysis
+Korean sentiment dictionary ( now developing )

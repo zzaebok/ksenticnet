@@ -102,7 +102,7 @@ def index_to_word(word_dict):
 
 def direct_mapping(korean_wordnet_path):
     print('Direct mapping started...')
-    # input: korean_wordnet_directory - 00018158-v	Verb	uprise, rise, arise, turn_out, get_up	기상하
+    # input: korean_wordnet_path - 00018158-v	Verb	uprise, rise, arise, turn_out, get_up	기상하
     # output: offset_sentic_dict["00044455-n"] = ['emergence', '#joy', '#surprise', 'positive', '0.726', 'appearance', 'start', 'casus_belli', 'beginning', 'egress']
 
     # step 1: make word - synset dict
@@ -230,8 +230,8 @@ def apply_lesk(offset_sentic_dict):
 if __name__ == "__main__":
 
     ksenticnet = dict()
-    similarity_dict = dict()
-    similarity_matrix = load_similarities('embeddings/trained_target_emb.npz')
+    similarity_dict = dict()    # to store max similarity on each synset for a korean word
+    similarity_matrix = load_similarities('embeddings/trained_target_emb_100-150-0.001-3.npz')
     word_idx = read_vocab_to_dict('vocabulary/verb_vocab.txt')
     idx_word = index_to_word(word_idx)
     korean_wordnet_path = 'kwn_1.0/kwn_synset_list.tsv'

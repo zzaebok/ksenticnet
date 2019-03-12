@@ -33,6 +33,10 @@ def weighted_sentic(sv1, fr1, sv2, fr2):
     #polarity values must be equal
     polarity = sv1[6]
 
+    tf = fr1+fr2
+    fr1 /= tf
+    fr2 /= tf
+
     pl = float(sv1[0]) * fr1 + float(sv2[0]) * fr2
     at = float(sv1[1]) * fr1 + float(sv2[1]) * fr2
     se = float(sv1[2]) * fr1 + float(sv2[2]) * fr2
@@ -126,8 +130,11 @@ def direct_mapping(korean_wordnet_path):
     offset_sentic_dict = dict()
     deleted_offset = []
     for word in word_synset_dict:
+        if word not in senticnet:
+            continue
+
         found = False
-        synsets = [wn.synset_from_pos_and_offset(synset_id[-1], int(synset_id[:8].lstrip('0'))) for synset_id in word_synset_dict[word] if word in senticnet]
+        synsets = [wn.synset_from_pos_and_offset(synset_id[-1], int(synset_id[:8].lstrip('0'))) for synset_id in word_synset_dict[word]]
         num_synsets = len(synsets)
         hypernyms = [Hypernyms(word, synset) for synset in synsets]
         for i in range(4):
@@ -135,28 +142,30 @@ def direct_mapping(korean_wordnet_path):
                 offset = word_synset_dict[word][j]
                 if offset in deleted_offset:
                     continue
+
                 for hypernym in hypernyms[j].level[i]:
-                    #hypernym is in semantics ( able to handle )
-                    if hypernym in senticnet[word]:
-                        if synsets[j] not in offset_sentic_dict:
-                            offset_sentic_dict[offset] = senticnet[word]
-                            fr_offset_dict[offset] = aff_fr_dict[word]
-                        else:
-                            # if polarity is different, deleted existing offset_sentic pair.
-                            if offset_sentic_dict[offset][7] != senticnet[word][7]:
-                                del offset_sentic_dict[offset]
-                                deleted_offset.append(offset)
-                                break
-                            tf = fr_offset_dict[offset] + aff_fr_dict[word]
-                            fr1 = fr_offset_dict[offset] / tf
-                            fr2 = aff_fr_dict[word] / tf
-                            offset_sentic_dict[offset] = weighted_sentic(offset_sentic_dict[offset], fr1, senticnet[word], fr2)
-                            fr_offset_dict[offset] += aff_fr_dict[word]
-                        found = True
-                        break
+                    if hypernym not in senticnet[word]:
+                        continue
+
+                    # hypernym is in semantics so, the synset could represent the meaning of the word
+                    if offset not in offset_sentic_dict:
+                        offset_sentic_dict[offset] = senticnet[word]
+                        fr_offset_dict[offset] = aff_fr_dict[word]
+                    else:
+                        # if polarity is different, deleted existing offset_sentic pair.
+                        if offset_sentic_dict[offset][7] != senticnet[word][7]:
+                            del offset_sentic_dict[offset]
+                            deleted_offset.append(offset)
+                            #the offset is not allowed, so we no longer need to see other hypernyms
+                            break
+
+                        offset_sentic_dict[offset] = weighted_sentic(offset_sentic_dict[offset], fr_offset_dict[offset], senticnet[word], aff_fr_dict[word])
+                        fr_offset_dict[offset] += aff_fr_dict[word]
+                    found = True
+                    break
             # no deeper progress
             if found:
-                # lesk algorithm is applied to thoes which were not mapped directly ( for later use )
+                # lesk algorithm is applied to those which were not mapped directly ( for later use )
                 del senticnet[word]
                 break
 
@@ -170,12 +179,12 @@ def apply_lesk(offset_sentic_dict):
     # input: offset_sentic_dict["00044455-n"] = ['0.1', '0.1', '0.1', '0.1', #joy', '#surprise', 'positive', '0.726', 'appearance', 'start', 'casus_belli', 'beginning', 'egress'] // semantics might not included
     # output: last_offset_sentic_dict["00044455-n"] = ['0.1', '0.1', '0.1', '0.1', '#joy', '#surprise', 'positive', '0.726', 'appearance', 'start', 'casus_belli', 'beginning', 'egress']
 
-    deleted_offset = []
     with open('vocabulary/affectnet_dict.pkl', 'rb') as f:
         aff_fr_dict = pickle.load(f)
     fr_offset_dict = dict()
 
     deleted_offset = []
+
     #direct mapped words were deleted before
     for word, value in senticnet.items():
         context = word
@@ -198,31 +207,24 @@ def apply_lesk(offset_sentic_dict):
                     continue
         if found == False:
             continue
-
+        # Direct mapped offset is not considered
         if offset in offset_sentic_dict:
             continue
-
         if offset in deleted_offset:
             continue
 
-        tmp_offset_sentic_dict = dict()
-
-        if offset not in tmp_offset_sentic_dict:
-            tmp_offset_sentic_dict[offset] = value
+        if offset not in offset_sentic_dict:
+            offset_sentic_dict[offset] = value
             fr_offset_dict[offset] = aff_fr_dict[word]
         else:
-            if tmp_offset_sentic_dict[offset][7] != value[7]:
-                del tmp_offset_sentic_dict[offset]
+            if offset_sentic_dict[offset][7] != value[7]:
+                del offset_sentic_dict[offset]
                 deleted_offset.append(offset)
                 continue
             else:
-                tf = fr_offset_dict[offset] + aff_fr_dict[word]
-                fr1 = fr_offset_dict[offset] / tf
-                fr2 = aff_fr_dict[word] / tf
-                tmp_offset_sentic_dict[offset] = weighted_sentic(tmp_offset_sentic_dict[offset], fr1, value, fr2)
+                offset_sentic_dict[offset] = weighted_sentic(offset_sentic_dict[offset], fr_offset_dict[offset], value, aff_fr_dict[word])
                 fr_offset_dict[offset] += aff_fr_dict[word]
 
-    tmp_offset_sentic_dict.update(offset_sentic_dict)
     return offset_sentic_dict
 
 ##### main #####
@@ -244,7 +246,6 @@ if __name__ == "__main__":
     fr_en_dict = dict()
 
     deleted_kor = []
-
     with open('vocabulary/opensubtitles.txt', 'r', encoding='utf8') as f:
         for line in f:
             en_word = line.split(' ')[0]
@@ -266,44 +267,40 @@ if __name__ == "__main__":
         offset_freq = np.sum([fr_en_dict[en_word] for en_word in en_words if en_word in fr_en_dict])
         fr_offset_dict[offset] = offset_freq
 
-        avg_similarity = lambda k, s: np.sum([similarity_matrix[word_idx[x]][word_idx[k]] for x in s if x != k]) / (len(s) - 1)
+        avg_similarity = lambda kor, kors: np.sum([similarity_matrix[word_idx[kor]][word_idx[x]] for x in kors]) / len(kors)
 
         for kor_word in kor_words:
             if kor_word in deleted_kor:
                 continue
             ksemantics = kor_words[:]
+            ksemantics.remove(kor_word)
             if kor_word not in ksenticnet:
+                #only one korean word in one synset
                 if len(kor_words) == 1:
                     similarity_dict[kor_word] = 1
                     fr_ko_dict[kor_word] = fr_offset_dict[offset]
-                    ksemantics = []
                 else:
-                    ksemantics.remove(kor_word)
-                    similarity_dict[kor_word] = avg_similarity(kor_word, kor_words)
+                    similarity_dict[kor_word] = avg_similarity(kor_word, ksemantics)
                 ksenticnet[kor_word] = offset_sentic_dict[offset][:8] + ksemantics
-
             else:
                 if len(kor_words) == 1:
+                    # existed one was not the only word for synset. Which means that this one has to represent the value.
                     if similarity_dict[kor_word] != 1:
-                        ksenticnet[kor_word] = offset_sentic_dict[offset][:8]
                         similarity_dict[kor_word] = 1
                         fr_ko_dict[kor_word] = fr_offset_dict[offset]
+                        ksenticnet[kor_word] = offset_sentic_dict[offset][:8]
                     else:
                         if ksenticnet[kor_word][7] != offset_sentic_dict[offset][7]:
                             del ksenticnet[kor_word]
                             deleted_kor.append(kor_word)
                             continue
-                        # to prevent both frequencies are 0
-                        fr1, fr2 = max(fr_ko_dict[kor_word], 1), max(fr_offset_dict[offset], 1)
-                        tf = fr1 + fr2
-                        fr1 /= tf
-                        fr2 /= tf
-                        ksenticnet[kor_word] = weighted_sentic(ksenticnet[kor_word], fr1, offset_sentic_dict[offset], fr2)
                         fr_ko_dict[kor_word] += fr_offset_dict[offset]
+                        # to prevent both frequencies are 0
+                        ksenticnet[kor_word] = weighted_sentic(ksenticnet[kor_word], max(fr_ko_dict[kor_word], 1), offset_sentic_dict[offset], max(fr_offset_dict[offset], 1))
+                #we have to compare each synset's similarity on the korean word and choose only one.
                 else:
-                    avg_simil = avg_similarity(kor_word, kor_words)
+                    avg_simil = avg_similarity(kor_word, ksemantics)
                     if avg_simil > similarity_dict[kor_word]:
-                        ksemantics.remove(kor_word)
                         ksenticnet[kor_word] = offset_sentic_dict[offset][:8] + ksemantics
                         similarity_dict[kor_word] = avg_simil
 

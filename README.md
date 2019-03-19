@@ -1,15 +1,15 @@
 # KSenticNet 한국어 감성 사전
 
 ### Overview
-- There are several Korean sentiment analysis resources such as KNU, KOSAC, openhangul.
-- However, they require a lot of time and human resources.
-- So I decided to make it easier and automatically from SenticNet and KAIST Korean wordnet(KWN).
+- There are several Korean sentiment analysis resources such as [KNU SentiLex](https://github.com/park1200656/KnuSentiLex), [KOSAC](http://word.snu.ac.kr/kosac/).
+- However, sentiment lexicons like them require a lot of time and human resources.
+- So I decided to make it easier and automatically from [SenticNet](https://sentic.net/) and KAIST Korean wordnet([KWN](http://wordnet.kaist.ac.kr/)).
 
 ### Building Process
 <사진>
 > #### Features
-- It follows major process of CSenticNet
-- It resolved duplicated sentic value problems
+- It follows major process of [CSenticNet](https://sentic.net/csenticnet.pdf)
+- But it resolved duplicated sentic value problems
 > #### method
 1. Make english word - synsets dictionary through KWN.
 2. Direct mapping ( Compare each synset's hypernyms to semantics in SenticNet )
@@ -19,15 +19,15 @@
 6. During 5, there are synsets which have only one same Korean word. For those, use weighted average sentic value as 4.
 7. During 5, several Korean words are assigned different sentic values but we cannot use weighted average because each synset contains multiple Korean words. So compute average cosine similarity * of synsets for that Korean word and use only the most adequate synset to give sentic value.
 
-\* Cosine similarity is computed from Korean tuned-embedding vectors. The vectors of Korean words are tuned by Context2Vec <링크> structure. In this structure, I scraped example sentences for target words from several dictionaries. While applying Bi-LSTM, Self-Attention, Neural Tensor Network, pre-trained Fasttext vectors are modified and adjusted. By using these tuned vectors we can compute cosine similarities among other Korean words in a synset and use average similarity as an index of 'adequacy'.
+\* Cosine similarity is computed from Korean tuned-embedding vectors. The vectors of Korean words are tuned by [Context2Vec structure](https://github.com/SenticNet/context2vec). In this structure, I scraped example sentences for target words from several dictionaries. While applying Bi-LSTM, Self-Attention, Neural Tensor Network, pre-trained Fasttext vectors are modified and adjusted. By using these tuned vectors we can compute cosine similarities among other Korean words in a synset and use average similarity as an index of 'adequacy'.
 
 ### Resources
-- SenticNet 5
+- SenticNet5
 - CSenticNet
 - KAIST Korean Wordnet
-- 연세 한국어 사전, 표준 국어 대사전, 고려대 한국어 대사전, 우리말샘
+- [연세 한국어 사전](https://ilis.yonsei.ac.kr/ysdic/), 표준 국어 대사전, 고려대 한국어 대사전, 우리말샘
 
 ### results and validation compared to other resources
 - We can assign sentic value to 5465 Korean words.
-- Validate it through NAVER movie review corpus ( positive 1000, negative 1000 )
+- Validate it through [NAVER movie review corpus](https://github.com/e9t/nsmc) ( positive 1000, negative 1000 )
 <사진>

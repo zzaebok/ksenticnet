@@ -7,6 +7,7 @@ from scipy import sparse
 import numpy as np
 import math
 import pickle
+from wordfreq import word_frequency
 nltk.download('wordnet')
 
 ##### basic functions #####
@@ -59,7 +60,7 @@ def sentic_to_sentiments(sentic):
         3: ['#disgust', '#admiration']
     }
 
-    first_sentic, second_sentic = np.argsort(sentic)[-2:][::-1]
+    first_sentic, second_sentic = np.argsort(np.absolute(sentic))[-2:][::-1]
     col1 = math.floor(sentic[first_sentic]) + 1
     col2 = math.floor(sentic[second_sentic]) + 1
 
@@ -153,7 +154,7 @@ def direct_mapping(korean_wordnet_path):
                         fr_offset_dict[offset] = aff_fr_dict[word]
                     else:
                         # if polarity is different, deleted existing offset_sentic pair.
-                        if offset_sentic_dict[offset][7] != senticnet[word][7]:
+                        if offset_sentic_dict[offset][6] != senticnet[word][6]:
                             del offset_sentic_dict[offset]
                             deleted_offset.append(offset)
                             #the offset is not allowed, so we no longer need to see other hypernyms
@@ -217,7 +218,7 @@ def apply_lesk(offset_sentic_dict):
             offset_sentic_dict[offset] = value
             fr_offset_dict[offset] = aff_fr_dict[word]
         else:
-            if offset_sentic_dict[offset][7] != value[7]:
+            if offset_sentic_dict[offset][6] != value[6]:
                 del offset_sentic_dict[offset]
                 deleted_offset.append(offset)
                 continue
@@ -233,7 +234,7 @@ if __name__ == "__main__":
 
     ksenticnet = dict()
     similarity_dict = dict()    # to store max similarity on each synset for a korean word
-    similarity_matrix = load_similarities('embeddings/trained_target_emb_100-150-0.001-3.npz')
+    similarity_matrix = load_similarities('embeddings/trained_target_emb.npz')
     word_idx = read_vocab_to_dict('vocabulary/verb_vocab.txt')
     idx_word = index_to_word(word_idx)
     korean_wordnet_path = 'kwn_1.0/kwn_synset_list.tsv'
@@ -243,14 +244,8 @@ if __name__ == "__main__":
 
     fr_offset_dict = dict()
     fr_ko_dict = dict()
-    fr_en_dict = dict()
 
     deleted_kor = []
-    with open('vocabulary/opensubtitles.txt', 'r', encoding='utf8') as f:
-        for line in f:
-            en_word = line.split(' ')[0]
-            freq = line.split(' ')[1]
-            fr_en_dict[en_word] = int(freq)
 
     lines = open(korean_wordnet_path, 'r', encoding='utf8').read().split('\n')[1:]
 
@@ -264,7 +259,7 @@ if __name__ == "__main__":
         en_words = line.split('\t')[2].replace(' ','').split(',')
         kor_words = line.split('\t')[3].replace(' ', '').split(',')
 
-        offset_freq = np.sum([fr_en_dict[en_word] for en_word in en_words if en_word in fr_en_dict])
+        offset_freq = np.sum([word_frequency(en_word.replace('_', ' '), 'en') for en_word in en_words])
         fr_offset_dict[offset] = offset_freq
 
         avg_similarity = lambda kor, kors: np.sum([similarity_matrix[word_idx[kor]][word_idx[x]] for x in kors]) / len(kors)
@@ -290,7 +285,7 @@ if __name__ == "__main__":
                         fr_ko_dict[kor_word] = fr_offset_dict[offset]
                         ksenticnet[kor_word] = offset_sentic_dict[offset][:8]
                     else:
-                        if ksenticnet[kor_word][7] != offset_sentic_dict[offset][7]:
+                        if ksenticnet[kor_word][6] != offset_sentic_dict[offset][6]:
                             del ksenticnet[kor_word]
                             deleted_kor.append(kor_word)
                             continue

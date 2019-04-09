@@ -5,6 +5,11 @@
 - However, sentiment lexicons like them require a lot of time and human resources.
 - So I decided to make it easier and automatically from [SenticNet](https://sentic.net/) and KAIST Korean wordnet([KWN](http://wordnet.kaist.ac.kr/)).
 
+### Example Image
+![KSenticNet Example](/KSenticnetExample.png)
+You can get words' sentic values, sentiments, polarity value and semantics.
+I recommend you to use it with POS tagger(such as Kkma) on Opinion mining.
+
 ### Building Process
 ![KSenticNet Structure](/KsenticNetStructure.png)
 > #### Features

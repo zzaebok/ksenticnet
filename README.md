@@ -34,5 +34,7 @@
 
 ### Results and validation
 - We can assign sentic value to 5465 Korean words.
-- Validate it through [NAVER movie review corpus](https://github.com/e9t/nsmc) ( simple count after tokenizing by [Kkma](https://github.com/konlpy/kkma) )
-<사진>
+- Validate it through 1000 positive reviews and 1000 negative reviews in [NAVER movie review corpus](https://github.com/e9t/nsmc) ( simple count after tokenizing by [Kkma](https://github.com/konlpy/kkma) )
+- Precision: 52.87% | Recall: 85.4% | F1: 65.31%
+
+

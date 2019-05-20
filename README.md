@@ -1,5 +1,8 @@
 # KSenticNet: 한국어 감성 사전 (Korean sentiment resource)
 
+### How to use
+- Just download 'ksenticnet.py' file :) 
+
 ### Overview
 - There are several Korean sentiment analysis resources such as [KNU SentiLex](https://github.com/park1200656/KnuSentiLex), [KOSAC](http://word.snu.ac.kr/kosac/).
 - However, sentiment lexicons like them require a lot of time and human resources.
